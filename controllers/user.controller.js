@@ -5,23 +5,29 @@ const User = require('../models/user.model');
 const sendMail = require('../utils/mailer.util');
 
 exports.createUser = async (req, res) => {
-    try {
-      const { name, email, phone, password, userType = 'customer' } = req.body;
-  
-      const hashedPassword = await bcrypt.hash(password, 10);
-  
-      const login = new Login({ email, password: hashedPassword, userType });
-      const savedLogin = await login.save();
-  
-      const user = new User({ name, email, phone, loginRef: savedLogin._id });
-      const savedUser = await user.save();
-  
-      // Send welcome email
-      await sendMail(
-        email,
-        '🎉 Welcome to Our App!',
-        `Hi ${name}, welcome aboard!`,
-        `
+  try {
+    const { name, email, phone, password, userType = 'customer' } = req.body;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const login = new Login({ email, password: hashedPassword, userType });
+    const savedLogin = await login.save();
+
+    const user = new User({
+      name,
+      email,
+      phone,
+      loginRef: savedLogin._id,  
+    });
+    const savedUser = await user.save();
+
+   savedLogin.userRef = savedUser._id;
+    await savedLogin.save();
+    await sendMail(
+      email,
+      '🎉 Welcome to Our App!',
+      `Hi ${name}, welcome aboard!`,
+      `
         <div style="max-width: 600px; margin: auto; font-family: Arial, sans-serif; border: 1px solid #eee; padding: 30px; border-radius: 8px; background-color: #f9f9f9;">
           <h2 style="color: #4CAF50; text-align: center;">Welcome to Our App, ${name}!</h2>
           <p style="font-size: 16px; color: #333;">
@@ -43,25 +49,21 @@ exports.createUser = async (req, res) => {
             &copy; ${new Date().getFullYear()} Your App Name. All rights reserved.
           </p>
         </div>
-        `
-      );
-      
-      res.status(201).json({
-        id: savedUser._id,
-        name: savedUser.name,
-        email: savedUser.email,
-        phone: savedUser.phone,
-        userType: savedLogin.userType
-      });
+      `
+    );
 
-    // Update the login with a reference to the user
-    savedLogin.userRef = savedUser._id;
-    await savedLogin.save();
-  
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  };
+    res.status(201).json({
+      id: savedUser._id,
+      name: savedUser.name,
+      email: savedUser.email,
+      phone: savedUser.phone,
+      userType: savedLogin.userType,
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
   
 
 exports.login = async (req, res) => {

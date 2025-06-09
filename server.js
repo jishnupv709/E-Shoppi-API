@@ -14,6 +14,7 @@ const { swaggerUi, swaggerSpec } = require('./swagger/swagger');
 
 
 const app = express();
+app.use(express.static('public'));
 app.use(cors()); 
 // app.use(cors({
 //   origin: 'https://your-frontend-app.vercel.app',
